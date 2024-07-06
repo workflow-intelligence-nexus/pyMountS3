@@ -1,4 +1,4 @@
-# Rclone CLI
+# pyMountS3
 
 A CLI application to configure and mount S3 storage using Rclone. This application reads settings from a `.env` file, allows you to install `rclone`, configure it, and provides commands to mount and unmount your S3 storage.
 
@@ -6,21 +6,22 @@ A CLI application to configure and mount S3 storage using Rclone. This applicati
 
 - Python 3.10
 - Ubuntu 22.04
+- Conda (Anaconda or Miniconda)
 
 ## Installation
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/rclone-cli.git
-cd rclone-cli
+git clone https://github.com/yourusername/pyMountS3.git
+cd pyMountS3
 ```
 
 ### 2. Set Up Virtual Environment and Install Dependencies
 
 ```bash
-python3.10 -m venv venv
-source venv/bin/activate
+conda create --name pyMountS3 python=3.10
+conda activate pyMountS3
 pip install -r requirements.txt
 ```
 
@@ -43,7 +44,7 @@ BUCKET_NAME=your_bucket_name
 The CLI includes a command to install `rclone`:
 
 ```bash
-python rclone_cli.py install
+python mountSWARM.py install
 ```
 
 ## Usage
@@ -53,7 +54,7 @@ python rclone_cli.py install
 Configure `rclone` with the S3 settings from your `.env` file:
 
 ```bash
-python rclone_cli.py configure
+python mountSWARM.py configure
 ```
 
 ### Mount the S3 Bucket
@@ -61,7 +62,7 @@ python rclone_cli.py configure
 Mount your S3 bucket to the specified mount point:
 
 ```bash
-python rclone_cli.py mount
+python mountSWARM.py mount
 ```
 
 ### Unmount the S3 Bucket
@@ -69,12 +70,12 @@ python rclone_cli.py mount
 Unmount the S3 bucket:
 
 ```bash
-python rclone_cli.py unmount
+python mountSWARM.py unmount
 ```
 
 ## Files and Directories
 
-- `rclone_cli.py`: The main CLI application script.
+- `mountSWARM.py`: The main CLI application script.
 - `requirements.txt`: Python dependencies for the project.
 - `.env.example`: Example environment configuration file.
 - `.gitignore`: Git ignore file to exclude `.env` and `venv` directories.
