@@ -6,12 +6,13 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Fetch environment variables
 S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
 S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
 IPADDR = os.getenv('IPADDR')
 BUCKET_NAME = os.getenv('BUCKET_NAME')
+MOUNT_POINT = os.getenv('MOUNT_POINT')
 RCLONE_REMOTE_NAME = 'myswarm'
-MOUNT_POINT = '/mnt/myswarm'
 
 @click.group()
 def cli():
@@ -35,11 +36,7 @@ def install():
 def configure():
     """Configure rclone with the S3 settings."""
     config_commands = [
-        f'rclone config create {RCLONE_REMOTE_NAME} s3 provider Other',
-        f'rclone config {RCLONE_REMOTE_NAME} env_auth false',
-        f'rclone config {RCLONE_REMOTE_NAME} access_key_id {S3_ACCESS_KEY}',
-        f'rclone config {RCLONE_REMOTE_NAME} secret_access_key {S3_SECRET_KEY}',
-        f'rclone config {RCLONE_REMOTE_NAME} endpoint http://{IPADDR}:9010'
+        f'rclone config create {RCLONE_REMOTE_NAME} s3 provider Other env_auth false access_key_id {S3_ACCESS_KEY} secret_access_key {S3_SECRET_KEY} endpoint http://{IPADDR}:9010',
     ]
 
     for cmd in config_commands:
@@ -54,7 +51,11 @@ def mount():
         os.makedirs(MOUNT_POINT)
     
     mount_command = [
-        'rclone', 'mount', f'{RCLONE_REMOTE_NAME}:{BUCKET_NAME}', MOUNT_POINT, '--daemon'
+        'rclone', 'mount', f'{RCLONE_REMOTE_NAME}:{BUCKET_NAME}', MOUNT_POINT, '--daemon',
+        '--vfs-cache-mode', 'full',
+        '--transfers', '32',
+        '--s3-chunk-size', '128M',
+        '--buffer-size', '64M'
     ]
     
     subprocess.run(mount_command, check=True)
