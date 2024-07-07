@@ -58,7 +58,7 @@ S3_ENDPOINT=https://periferystorage01.domain.com
 To access the Perifery storage node and get a response, use the following `curl` command:
 
 ```bash
-curl -k -v -u 'periferyadmin:Datacore1!' -H "Host: periferystorage01.domain.com" 'https://periferystorage01.domain.com/'
+curl -k -v -u 'periferyadmin:password' -H "Host: periferystorage01.domain.com" 'https://periferystorage01.domain.com/'
 ```
 
 ### 4. Install Rclone
@@ -157,7 +157,7 @@ This script will test various configurations and output the performance metrics.
 To access the Perifery storage node and get a response, use the following `curl` command:
 
 ```bash
-curl -k -v -u 'periferyadmin:Datacore1!' -H "Host: periferystorage01.domain.com" 'https://periferystorage01.domain.com/'
+curl -k -v -u 'periferyadmin:password' -H "Host: periferystorage01.domain.com" 'https://periferystorage01.domain.com/'
 ```
 
 #### Command Breakdown
