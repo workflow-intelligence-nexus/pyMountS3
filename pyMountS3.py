@@ -11,6 +11,7 @@ S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
 S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
 IPADDR = os.getenv('IPADDR')
 MOUNT_POINT = os.getenv('MOUNT_POINT')
+S3_ENDPOINT = os.getenv('S3_ENDPOINT')
 RCLONE_REMOTE_NAME = 'myswarm'
 
 @click.group()
@@ -35,14 +36,13 @@ def install():
 def configure():
     """Configure rclone with the S3 settings."""
     config_commands = [
-        f'rclone config create {RCLONE_REMOTE_NAME} s3 provider Other env_auth false access_key_id {S3_ACCESS_KEY} secret_access_key {S3_SECRET_KEY} endpoint {os.getenv("S3_ENDPOINT")}',
+        f'rclone config create {RCLONE_REMOTE_NAME} s3 provider Other env_auth false access_key_id {S3_ACCESS_KEY} secret_access_key {S3_SECRET_KEY} endpoint {S3_ENDPOINT}',
     ]
 
     for cmd in config_commands:
         subprocess.run(cmd.split(), check=True)
     
     click.echo('Rclone configuration complete.')
-
 
 @click.command()
 @click.argument('bucket_name')
@@ -54,10 +54,13 @@ def mount(bucket_name):
     
     mount_command = [
         'rclone', 'mount', f'{RCLONE_REMOTE_NAME}:{bucket_name}', mount_path, '--daemon',
-        '--vfs-cache-mode', 'writes',
+        '--vfs-cache-mode', 'full',
         '--transfers', '32',
         '--s3-chunk-size', '128M',
-        '--buffer-size', '64M'
+        '--buffer-size', '64M',
+        '--log-file', '/tmp/rclone.log',
+        '--log-level', 'DEBUG',
+        '--no-check-certificate'
     ]
     
     subprocess.run(mount_command, check=True)
