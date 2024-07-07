@@ -43,6 +43,22 @@ PASSWORD=your_password
 S3_ACCESS_KEY=your_access_key
 S3_SECRET_KEY=your_secret_key
 MOUNT_POINT=/mnt/myswarm
+S3_ENDPOINT=https://periferystorage01.domain.com
+```
+
+### Accessing Perifery Storage
+
+#### Prerequisites
+
+1. Ensure `curl` is installed on your system.
+2. Verify that you have the correct credentials (username and password) for accessing the Perifery storage.
+
+#### Example Command to Access Perifery Storage
+
+To access the Perifery storage node and get a response, use the following `curl` command:
+
+```bash
+curl -k -v -u 'periferyadmin:Datacore1!' -H "Host: periferystorage01.domain.com" 'https://periferystorage01.domain.com/'
 ```
 
 ### 4. Install Rclone
@@ -149,7 +165,7 @@ curl -k -v -u 'periferyadmin:Datacore1!' -H "Host: periferystorage01.domain.com"
 - **`curl`**: Command-line tool for transferring data.
 - **`-k`**: Skip SSL certificate validation.
 - **`-v`**: Verbose mode for detailed output.
-- **`-u 'periferyadmin:Datacore1!'`**: Basic authentication with username `periferyadmin` and password `Datacore1!`.
+- **`-u 'username:password!'`**: Basic authentication with username `username` and password `password`.
 - **`-H "Host: periferystorage01.domain.com"`**: Host header to specify the target.
 - **`'https://periferystorage01.domain.com/'`**: The URL of the Perifery storage node.
 
