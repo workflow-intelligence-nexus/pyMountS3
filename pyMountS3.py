@@ -10,7 +10,6 @@ load_dotenv()
 S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
 S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
 IPADDR = os.getenv('IPADDR')
-BUCKET_NAME = os.getenv('BUCKET_NAME')
 MOUNT_POINT = os.getenv('MOUNT_POINT')
 RCLONE_REMOTE_NAME = 'myswarm'
 
@@ -36,7 +35,7 @@ def install():
 def configure():
     """Configure rclone with the S3 settings."""
     config_commands = [
-        f'rclone config create {RCLONE_REMOTE_NAME} s3 provider Other env_auth false access_key_id {S3_ACCESS_KEY} secret_access_key {S3_SECRET_KEY} endpoint http://{IPADDR}:9010',
+        f'rclone config create {RCLONE_REMOTE_NAME} s3 provider Other env_auth false access_key_id {S3_ACCESS_KEY} secret_access_key {S3_SECRET_KEY} endpoint {os.getenv("S3_ENDPOINT")}',
     ]
 
     for cmd in config_commands:
@@ -44,30 +43,35 @@ def configure():
     
     click.echo('Rclone configuration complete.')
 
+
 @click.command()
-def mount():
+@click.argument('bucket_name')
+def mount(bucket_name):
     """Mount the S3 bucket using rclone."""
-    if not os.path.exists(MOUNT_POINT):
-        os.makedirs(MOUNT_POINT)
+    mount_path = os.path.join(MOUNT_POINT, bucket_name)
+    if not os.path.exists(mount_path):
+        os.makedirs(mount_path)
     
     mount_command = [
-        'rclone', 'mount', f'{RCLONE_REMOTE_NAME}:{BUCKET_NAME}', MOUNT_POINT, '--daemon',
-        '--vfs-cache-mode', 'full',
+        'rclone', 'mount', f'{RCLONE_REMOTE_NAME}:{bucket_name}', mount_path, '--daemon',
+        '--vfs-cache-mode', 'writes',
         '--transfers', '32',
         '--s3-chunk-size', '128M',
         '--buffer-size', '64M'
     ]
     
     subprocess.run(mount_command, check=True)
-    click.echo(f'Mounted {RCLONE_REMOTE_NAME}:{BUCKET_NAME} to {MOUNT_POINT}')
+    click.echo(f'Mounted {RCLONE_REMOTE_NAME}:{bucket_name} to {mount_path}')
 
 @click.command()
-def unmount():
+@click.argument('bucket_name')
+def unmount(bucket_name):
     """Unmount the S3 bucket."""
-    unmount_command = ['fusermount', '-u', MOUNT_POINT]
+    mount_path = os.path.join(MOUNT_POINT, bucket_name)
+    unmount_command = ['fusermount', '-u', mount_path]
     
     subprocess.run(unmount_command, check=True)
-    click.echo(f'Unmounted {MOUNT_POINT}')
+    click.echo(f'Unmounted {mount_path}')
 
 cli.add_command(install)
 cli.add_command(configure)
