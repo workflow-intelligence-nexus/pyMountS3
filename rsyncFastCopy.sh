@@ -10,29 +10,31 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to install rsync
-install_rsync() {
-    log "rsync is not installed. Attempting to install..."
+# Function to install a package
+install_package() {
+    local package=$1
+    log "$package is not installed. Attempting to install..."
     if command_exists apt-get; then
-        sudo apt-get update && sudo apt-get install -y rsync
+        sudo apt-get update && sudo apt-get install -y "$package"
     elif command_exists yum; then
-        sudo yum install -y rsync
+        sudo yum install -y "$package"
     else
-        log "Error: Unable to install rsync. Please install it manually."
+        log "Error: Unable to install $package. Please install it manually."
         exit 1
     fi
 }
 
-# Check if rsync is installed
-if ! command_exists rsync; then
-    install_rsync
-fi
+# Check and install rsync and pv if not present
+for package in rsync pv; do
+    if ! command_exists "$package"; then
+        install_package "$package"
+    fi
 
-# Check if rsync is now available
-if ! command_exists rsync; then
-    log "Error: rsync installation failed. Please install it manually."
-    exit 1
-fi
+    if ! command_exists "$package"; then
+        log "Error: $package installation failed. Please install it manually."
+        exit 1
+    fi
+done
 
 # Check if correct number of arguments is provided
 if [ "$#" -ne 2 ]; then
@@ -52,9 +54,12 @@ fi
 # Create destination directory if it doesn't exist
 mkdir -p "$DEST_DIR"
 
-# Perform the copy operation
+# Calculate total size of source directory
+total_size=$(du -sb "$SOURCE_DIR" | cut -f1)
+
+# Perform the copy operation with progress
 log "Starting copy operation from $SOURCE_DIR to $DEST_DIR"
-rsync -avh --progress --stats --numeric-ids --delete "$SOURCE_DIR/" "$DEST_DIR/"
+rsync -ah --info=progress2 "$SOURCE_DIR/" "$DEST_DIR/" | pv -lep -s "$total_size" > /dev/null
 
 # Check the exit status of rsync
 if [ $? -eq 0 ]; then
