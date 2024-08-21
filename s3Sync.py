@@ -7,8 +7,8 @@ from concurrent.futures import ThreadPoolExecutor
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-LOCAL_DIR = "/mnt/myswarm/clientdemos"
-REMOTE = "myswarm:clientdemos"
+LOCAL_DIR = "/mnt/myswarm/runpod"
+REMOTE = "myswarm:runpod"
 SYNC_INTERVAL = 300  # increased to 5 minutes
 CACHE_FILE = "/tmp/s3_sync_cache.json"
 MAX_WORKERS = 4  # for parallel transfers
