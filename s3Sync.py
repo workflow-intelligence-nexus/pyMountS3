@@ -17,8 +17,19 @@ def md5(fname):
     return hash_md5.hexdigest()
 
 def sync_from_s3():
+    # First, sync without deleting local files
     cmd = f"rclone sync {REMOTE} {LOCAL_DIR} --progress"
     subprocess.run(cmd, shell=True, check=True)
+
+    # Then, upload any local files that don't exist in S3
+    cmd = f"rclone copy {LOCAL_DIR} {REMOTE} --progress --files-from-raw -"
+    local_files = set(os.listdir(LOCAL_DIR))
+    remote_files = set(subprocess.check_output(["rclone", "lsf", REMOTE]).decode().splitlines())
+    files_to_upload = local_files - remote_files
+    
+    if files_to_upload:
+        files_input = "\n".join(files_to_upload).encode()
+        subprocess.run(cmd, input=files_input, shell=True, check=True)
 
 class UploadHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -50,8 +61,8 @@ class UploadHandler(FileSystemEventHandler):
         subprocess.run(cmd, shell=True, check=True)
 
 def main():
-    # Initial sync from S3
-    print("Performing initial sync from S3...")
+    # Initial sync from S3 and upload of local files
+    print("Performing initial sync from S3 and uploading local files...")
     sync_from_s3()
 
     # Set up file watcher for uploads
@@ -62,7 +73,7 @@ def main():
 
     try:
         while True:
-            print(f"Syncing from S3...")
+            print(f"Syncing from S3 and uploading new local files...")
             sync_from_s3()
             print(f"Sleeping for {SYNC_INTERVAL} seconds...")
             time.sleep(SYNC_INTERVAL)
