@@ -10,31 +10,21 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to install a package
-install_package() {
-    local package=$1
-    log "$package is not installed. Attempting to install..."
-    if command_exists apt-get; then
-        sudo apt-get update && sudo apt-get install -y "$package"
-    elif command_exists yum; then
-        sudo yum install -y "$package"
-    else
-        log "Error: Unable to install $package. Please install it manually."
+# Function to check required tools
+check_required_tools() {
+    local missing_tools=()
+    for tool in rsync pv; do
+        if ! command_exists "$tool"; then
+            missing_tools+=("$tool")
+        fi
+    done
+
+    if [ ${#missing_tools[@]} -ne 0 ]; then
+        log "Error: The following required tools are missing: ${missing_tools[*]}"
+        log "Please install them manually or use a system where they are available."
         exit 1
     fi
 }
-
-# Check and install rsync and pv if not present
-for package in rsync pv; do
-    if ! command_exists "$package"; then
-        install_package "$package"
-    fi
-
-    if ! command_exists "$package"; then
-        log "Error: $package installation failed. Please install it manually."
-        exit 1
-    fi
-done
 
 # Check if correct number of arguments is provided
 if [ "$#" -ne 2 ]; then
@@ -44,6 +34,9 @@ fi
 
 SOURCE_DIR="$1"
 DEST_DIR="$2"
+
+# Check for required tools
+check_required_tools
 
 # Check if source directory exists
 if [ ! -d "$SOURCE_DIR" ]; then
