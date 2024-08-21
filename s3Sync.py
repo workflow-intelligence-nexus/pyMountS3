@@ -16,20 +16,36 @@ def md5(fname):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
-def sync_from_s3():
-    # First, sync without deleting local files
-    cmd = f"rclone sync {REMOTE} {LOCAL_DIR} --progress"
-    subprocess.run(cmd, shell=True, check=True)
+def get_remote_files():
+    cmd = f"rclone lsf {REMOTE}"
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    return set(result.stdout.splitlines())
 
-    # Then, upload any local files that don't exist in S3
-    cmd = f"rclone copy {LOCAL_DIR} {REMOTE} --progress --files-from-raw -"
+def sync_from_s3():
+    remote_files = get_remote_files()
     local_files = set(os.listdir(LOCAL_DIR))
-    remote_files = set(subprocess.check_output(["rclone", "lsf", REMOTE]).decode().splitlines())
-    files_to_upload = local_files - remote_files
-    
-    if files_to_upload:
-        files_input = "\n".join(files_to_upload).encode()
-        subprocess.run(cmd, input=files_input, shell=True, check=True)
+
+    # Download new or updated files from S3
+    for file in remote_files:
+        remote_path = f"{REMOTE}/{file}"
+        local_path = os.path.join(LOCAL_DIR, file)
+        if file not in local_files or md5(local_path) != get_remote_md5(remote_path):
+            cmd = f"rclone copy '{remote_path}' '{LOCAL_DIR}' --progress"
+            subprocess.run(cmd, shell=True, check=True)
+
+    # Upload local files that don't exist in S3
+    for file in local_files - remote_files:
+        local_path = os.path.join(LOCAL_DIR, file)
+        remote_path = f"{REMOTE}/{file}"
+        cmd = f"rclone copy '{local_path}' '{REMOTE}' --progress"
+        subprocess.run(cmd, shell=True, check=True)
+
+def get_remote_md5(remote_path):
+    cmd = f"rclone md5sum {remote_path}"
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if result.returncode == 0:
+        return result.stdout.split()[0]
+    return None
 
 class UploadHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -44,28 +60,20 @@ class UploadHandler(FileSystemEventHandler):
         relative_path = os.path.relpath(file_path, LOCAL_DIR)
         remote_path = f"{REMOTE}/{relative_path}"
         
-        # Check if file exists remotely and compare MD5 hashes
-        check_cmd = f"rclone md5sum {remote_path}"
-        result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True)
+        remote_md5 = get_remote_md5(remote_path)
+        local_md5 = md5(file_path)
         
-        if result.returncode == 0:
-            remote_md5 = result.stdout.split()[0]
-            local_md5 = md5(file_path)
-            
-            if remote_md5 == local_md5:
-                print(f"File {file_path} unchanged. Skipping upload.")
-                return
-
-        print(f"Uploading {file_path} to {remote_path}")
-        cmd = f"rclone copy '{file_path}' '{os.path.dirname(remote_path)}' --progress"
-        subprocess.run(cmd, shell=True, check=True)
+        if remote_md5 != local_md5:
+            print(f"Uploading {file_path} to {remote_path}")
+            cmd = f"rclone copy '{file_path}' '{os.path.dirname(remote_path)}' --progress"
+            subprocess.run(cmd, shell=True, check=True)
+        else:
+            print(f"File {file_path} unchanged. Skipping upload.")
 
 def main():
-    # Initial sync from S3 and upload of local files
-    print("Performing initial sync from S3 and uploading local files...")
+    print("Performing initial sync...")
     sync_from_s3()
 
-    # Set up file watcher for uploads
     event_handler = UploadHandler()
     observer = Observer()
     observer.schedule(event_handler, LOCAL_DIR, recursive=True)
@@ -73,7 +81,7 @@ def main():
 
     try:
         while True:
-            print(f"Syncing from S3 and uploading new local files...")
+            print(f"Syncing...")
             sync_from_s3()
             print(f"Sleeping for {SYNC_INTERVAL} seconds...")
             time.sleep(SYNC_INTERVAL)
